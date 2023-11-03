@@ -47,7 +47,7 @@ public class KinematicArm extends SubsystemBase {
   // SmartDashboard.putNumber("arm/X", getX(sm0));
   // SmartDashboard.putNumber("arm/Y", getY(sm0));
 
-  SimpleMatrix fm0 = getHomogeneousMatrix(0.0,4.0,0.0).mult(sm0); 
+  SimpleMatrix fm0 = getHomogeneousMatrix(0.0,4.0,0.0).mult(sm0); //makes it easier to see on the field
   SimpleMatrix fm1 = getHomogeneousMatrix(0.0,4.0,0.0).mult(sm1); 
   field.getObject("sm0").setPose(new Pose2d(getX(fm0), getY(fm0), new Rotation2d(getAngleRadians(fm0))));
   field.getObject("sm1").setPose(new Pose2d(getX(fm1), getY(fm1), new Rotation2d(getAngleRadians(fm1))));
@@ -76,7 +76,7 @@ public class KinematicArm extends SubsystemBase {
     return y;
   }
 
-  public double getAngleRadians(SimpleMatrix matrix) {
+  public static double getAngleRadians(SimpleMatrix matrix) {
     double radians = Math.atan2(matrix.get(1,0),matrix.get(0, 0));
     return radians;
   }
@@ -84,4 +84,18 @@ public class KinematicArm extends SubsystemBase {
     double degrees = Math.toDegrees(getAngleRadians(matrix));
     return degrees;
   }
+
+  public double[] getAngle0(SimpleMatrix firstJoint, SimpleMatrix secondJoint, double lengthOne, double lengthTwo, SimpleMatrix endEffector) {
+    double distance = Math.sqrt(Math.pow(endEffector.get(0, 2), 2) + Math.pow(endEffector.get(1, 2), 2));
+    double q2a = Math.acos(distance*distance - (Math.pow(lengthOne, 2) + Math.pow(lengthTwo, 2))/(2*firstJoint.get(0, 2)*secondJoint.get(0, 2)));
+    double q2b= Math.PI - q2a;
+    var q2 = q2a; //figure out which one we want
+
+    double q1 = Math.atan(endEffector.get(1, 2)/endEffector.get(0, 2)) - Math.atan(lengthTwo*Math.sin(q2)/(lengthOne+lengthTwo*Math.cos(q2)));
+    double[] outputAngle = new double[2];
+    outputAngle[0] = q1;
+    outputAngle[1] = q2;
+    return outputAngle;
+  }
+  
 }

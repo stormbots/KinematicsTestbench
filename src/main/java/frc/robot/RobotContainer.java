@@ -4,16 +4,21 @@
 
 package frc.robot;
 
-import frc.robot.Constants.OperatorConstants;
+import com.revrobotics.CANSparkMax.SoftLimitDirection;
+
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.commands.Autos;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.commands.MatrixMath;
+import frc.robot.commands.setArm;
+import frc.robot.subsystems.ArmstrongArmKinematics;
 import frc.robot.subsystems.ExampleSubsystem;
-import frc.robot.subsystems.KinematicArm;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -24,20 +29,30 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
   private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
-  private final KinematicArm arm = new KinematicArm();
+  private final ArmstrongArmKinematics arm = new ArmstrongArmKinematics();
+
+  private final CommandJoystick driver = new CommandJoystick(0);
 
   // Replace with CommandPS4Controller or CommandJoystick if needed
-  private final CommandXboxController m_driverController =
-      new CommandXboxController(OperatorConstants.kDriverControllerPort);
+  //private final CommandXboxController m_driverController =
+  //    new CommandXboxController(OperatorConstants.kDriverControllerPort);
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
+    arm.armMotor.enableSoftLimit(SoftLimitDirection.kForward, true);
+    arm.armMotor.enableSoftLimit(SoftLimitDirection.kReverse, true);
+
+    arm.setDefaultCommand(
+      new setArm(90, 0, 0, 0, arm)
+      );
     // Configure the trigger bindings
     configureBindings();
     MatrixMath matrix = new MatrixMath(4, 4);
     System.out.println("Hello world!");
     System.out.println(matrix);
     SmartDashboard.putString("matrix", matrix.toString());
+
+    
   }
 
   /**
@@ -54,9 +69,14 @@ public class RobotContainer {
     new Trigger(m_exampleSubsystem::exampleCondition)
         .onTrue(new ExampleCommand(m_exampleSubsystem));
 
+    driver.button(2).onTrue(new InstantCommand(()->{
+      var ik=arm.inverseKinematics(0, 35+22, 90);
+      SmartDashboard.putNumber("ik/extDistance", ik[0]);
+      SmartDashboard.putNumber("ik/extAngle", ik[1]);
+    }));
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
     // cancelling on release.
-    m_driverController.b().whileTrue(m_exampleSubsystem.exampleMethodCommand());
+   // m_driverController.b().whileTrue(m_exampleSubsystem.exampleMethodCommand());
   }
 
   /**
