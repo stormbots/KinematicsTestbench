@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.Constants.ArmConstants;
@@ -155,26 +156,30 @@ public class ArmstrongArmKinematics extends SubsystemBase {
   }
 
   @Override
-  public void periodic() {}
-    // This method will be called once per scheduler run
+  // This method will be called once per scheduler run
+  public void periodic() {
+    SmartDashboard.putNumber("ik/armAngle", getArmAngle());
+    SmartDashboard.putNumber("ik/wristAngle", getWristAngle());
+    if(getRetractRotations()<-0.1){retractMotor.getEncoder().setPosition(-0.1);}
+  }
     
-    public double getX(SimpleMatrix matrix) {
-      double x = matrix.get(0, 2);
-      return x;
-    }
-    public double getY(SimpleMatrix matrix) {
-      double y = matrix.get(1, 2);
-      return y;
-    }
-    public SimpleMatrix getHomogeneousMatrix(Double angleRad, Double x, Double y){
-      double[][] m0 = {
-      {Math.cos(angleRad),-Math.sin(angleRad),x},
-      {Math.sin(angleRad),Math.cos(angleRad),y},
-      {0,0,1}
-     };
-      SimpleMatrix sm0 = new SimpleMatrix(m0);
-      return sm0;
-    }
+  public double getX(SimpleMatrix matrix) {
+    double x = matrix.get(0, 2);
+    return x;
+  }
+  public double getY(SimpleMatrix matrix) {
+    double y = matrix.get(1, 2);
+    return y;
+  }
+  public SimpleMatrix getHomogeneousMatrix(Double angleRad, Double x, Double y){
+    double[][] m0 = {
+    {Math.cos(angleRad),-Math.sin(angleRad),x},
+    {Math.sin(angleRad),Math.cos(angleRad),y},
+    {0,0,1}
+    };
+    SimpleMatrix sm0 = new SimpleMatrix(m0);
+    return sm0;
+  }
   public double getRetractRotations(){
     return retractMotor.getEncoder().getPosition()/retractMotor.getEncoder().getPositionConversionFactor();
   }
@@ -218,30 +223,41 @@ public class ArmstrongArmKinematics extends SubsystemBase {
     return angle;
   }
  
+  /**
+   * 
+   * @param endEffectorX
+   * @param endEffectorY
+   * @param wristAngle
+   * @return [ext,angle degrees]
+   */
   public double[] inverseKinematics( double endEffectorX, double endEffectorY, double wristAngle) {
     double wristLength=11;
     double heightAboveFloorInches= 22; 
+    wristAngle = Math.toRadians(wristAngle);
   //   double distance = Math.sqrt(Math.pow(getX(endEffector), 2) + Math.pow(getY(endEffector), 2));
   //   double q2a = Math.acos(distance*distance - (Math.pow(lengthOne, 2) + Math.pow(lengthTwo, 2))/(2*firstJoint.get(0, 2)*secondJoint.get(0, 2)));
   //   double q2b= Math.PI - q2a;
   //   var q2 = q2a; //figure out which one we want
 
   //   double q1 = Math.atan(endEffector.get(1, 2)/endEffector.get(0, 2)) - Math.atan(lengthTwo*Math.sin(q2)/(lengthOne+lengthTwo*Math.cos(q2)));
-      double x2 = wristLength*Math.cos(wristAngle);
-      double y2 = wristLength*Math.sin(wristAngle);
-      double x1 = endEffectorX - x2;
-      double y1 = endEffectorY - y2 - heightAboveFloorInches;
-      double l1 = Math.sqrt((x1*x1)+(y1*y1));
-      double armAngle = Math.asin(y1/l1);
-      armAngle = Math.toDegrees(armAngle);
-      
-      double returnValues[] = new double [2];
-      returnValues[0] = l1; // distance
-      returnValues[1] = armAngle; //angle
+    double x2 = wristLength*Math.cos(wristAngle);
+    double y2 = wristLength*Math.sin(wristAngle);
+    double x1 = endEffectorX - x2;
+    double y1 = endEffectorY - (heightAboveFloorInches + y2);
+    double l1 = Math.sqrt((x1*x1)+(y1*y1));
+    double armAngle = Math.atan2(y1, x1);
+    armAngle = Math.toDegrees(armAngle);
     
-     return returnValues;
+    double returnValues[] = new double [3];
+    returnValues[0] = l1-14; // distance
+    returnValues[1] = armAngle; //angle degrees
+    returnValues[2] = Math.toDegrees(wristAngle); //angle
+  
+    return returnValues;
    }
 
+   //public void forwardKinematics(double wristAngle, double heightAboveFloorInches, double armAngle, double l1){}
+   
    public boolean isWristOnTarget(double tolerance){
     if(wristSetpoint >= getWristAngle() && getWristAngleAbsolute() >= WristConstants.kMaxAngle -7 ){
       return true;

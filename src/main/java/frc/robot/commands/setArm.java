@@ -1,12 +1,12 @@
 package frc.robot.commands;
 
 import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
 
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.CommandBase;
-import frc.robot.Constants.ArmConstants;
 import frc.robot.Constants.RetractConstants;
 import frc.robot.Constants.WristConstants;
 import frc.robot.subsystems.ArmstrongArmKinematics;
@@ -15,9 +15,11 @@ import frc.robot.subsystems.ArmstrongArmKinematics;
 public class setArm extends CommandBase {
   private final ArmstrongArmKinematics arm;
   private DoubleSupplier angle;
+  private DoubleSupplier armAngle;
   private DoubleSupplier extension;
   private DoubleSupplier intakeSpeed;
   private DoubleSupplier wristAngle;
+  private Supplier<double[]> ik;
   SlewRateLimiter retractRateLimiter = new SlewRateLimiter(
     RetractConstants.kMaxRetractionRotations*1.5,
     -RetractConstants.kMaxRetractionRotations*1.5, 0);
@@ -64,7 +66,23 @@ public class setArm extends CommandBase {
     addRequirements(arm);
     //addRequirements(intake);
     goal = new TrapezoidProfile.State(armAngle.getAsDouble(), 0);
-
+  }
+  
+  //inverse Kinematics
+  public setArm(
+      Supplier<double[]> ik,
+      DoubleSupplier intakeSpeed, 
+      ArmstrongArmKinematics arm) {
+    this.arm = arm;
+    this.ik = ik;
+    this.armAngle = ()->this.ik.get()[1];
+    this.extension = ()->this.ik.get()[0];
+    this.intakeSpeed = intakeSpeed;
+    this.wristAngle = ()->this.ik.get()[2];
+    // Use addRequirements() here to declare subsystem dependencies.
+    addRequirements(arm);
+    //addRequirements(intake);
+    goal = new TrapezoidProfile.State(armAngle.getAsDouble(), 0);
   }
 
 
@@ -87,6 +105,11 @@ public class setArm extends CommandBase {
     var extension = this.extension.getAsDouble();
     var intakeSpeed = this.intakeSpeed.getAsDouble();
     var wristAngle = this.wristAngle.getAsDouble();
+
+    goal = new TrapezoidProfile.State(armAngle.getAsDouble(), 0);
+    // startTimer = Timer.getFPGATimestamp();
+    var initial = new TrapezoidProfile.State(arm.getArmAngle(), arm.armMotor.getEncoder().getVelocity());
+    armProfile = new TrapezoidProfile(constraints, goal, initial);
 
     var targetPosition = armProfile.calculate(Timer.getFPGATimestamp()-startTimer).position;
 
