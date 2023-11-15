@@ -160,7 +160,13 @@ public class ArmstrongArmKinematics extends SubsystemBase {
   public void periodic() {
     SmartDashboard.putNumber("ik/armAngle", getArmAngle());
     SmartDashboard.putNumber("ik/wristAngle", getWristAngle());
+    SmartDashboard.putNumber("ik/WristAngle Abs", getWristAngleAbsolute());
     if(getRetractRotations()<-0.1){retractMotor.getEncoder().setPosition(-0.1);}
+
+    if(wristAbsEncoder.isConnected()){
+      wristMotor.getEncoder().setPosition(getWristAngleAbsolute());
+    }
+
   }
     
   public double getX(SimpleMatrix matrix) {
@@ -232,7 +238,7 @@ public class ArmstrongArmKinematics extends SubsystemBase {
    */
   public double[] inverseKinematics( double endEffectorX, double endEffectorY, double wristAngle) {
     double wristLength=11;
-    double heightAboveFloorInches= 22; 
+    double heightAboveFloorInches= 22-5; 
     wristAngle = Math.toRadians(wristAngle);
   //   double distance = Math.sqrt(Math.pow(getX(endEffector), 2) + Math.pow(getY(endEffector), 2));
   //   double q2a = Math.acos(distance*distance - (Math.pow(lengthOne, 2) + Math.pow(lengthTwo, 2))/(2*firstJoint.get(0, 2)*secondJoint.get(0, 2)));

@@ -96,16 +96,23 @@ public class RobotContainer {
       SmartDashboard.putNumber("ik/extAngle", ik[1]);
       SmartDashboard.putNumber("ik/extInches", inches);
       SmartDashboard.putNumber("ik/setArmWristAngle", ik[2]);
-      // Supplier<double[]> var = ()->ik;
+      Supplier<double[]> var = ()->ik;
     
       }
     ));
+
+    // operator.button(2).InstantCommand(
+    //   new setArm(
+    //   ()->arm.setArm(90, 0, 0, 0, arm)
+    // );
+
+    
 
     operator.button(1).whileTrue(
       new setArm(
       ()->arm.inverseKinematics(
           34, 
-          Lerp.lerp(operator.getRawAxis(3), -1, 1, 12, 36), 
+          Lerp.lerp(operator.getRawAxis(3), -1,  1, 12, 36), 
           0
         ), 
         ()->0, 
