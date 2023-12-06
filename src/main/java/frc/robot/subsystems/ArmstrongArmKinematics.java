@@ -204,7 +204,22 @@ public class ArmstrongArmKinematics extends SubsystemBase {
   public double getRetractLengthM(){
     return Units.inchesToMeters(getRetractLengthIn());
   }
+  //TODO: Before using, verify math and measurements/calibration of system
+  public double calcRetractRotations(double length){
+    //This is just getRetractLength, backwards, solving for rotations
+    var id = RetractConstants.kInnerDiameter;
+    var strapwidth = RetractConstants.kStrapWidth;
+    var area = length*strapwidth;
+    var od = Math.sqrt( (area + Math.PI/4.0*id*id ) / (Math.PI/4.0) ); 
+    var rotations = ( od-id )/(2*strapwidth);
+    return rotations;
+  }
 
+  public void setRetractLengthM(double meters){
+    calcRetractRotations(Units.metersToInches(meters));
+  }
+
+  
   public double getArmAngleAbsolute(){
     // var angle = armAbsEncoder.getAbsolutePosition()*360-Constants.ArmConstants.kAbsoluteAngleOffset;
     var angle = armAbsEncoder.getAbsolutePosition()*Math.PI*2;
@@ -317,8 +332,10 @@ public class ArmstrongArmKinematics extends SubsystemBase {
     wristMotor.getPIDController().setReference(angle, ControlType.kPosition, 0, ff, ArbFFUnits.kVoltage);
   }
   
-  public void setRetractPID(double setpoint){
-    this.retractSetpoint =setpoint;
+  public void setRetractPID(double setpointIn){
+    //do conversions
+    var setpoint = calcRetractRotations(setpointIn); 
+    this.retractSetpoint = setpoint;
     var retractFF = Lerp.lerp(getRetractRotations(), 
       RetractConstants.kRetractSoftLimitReverse, RetractConstants.kRetractSoftLimitForward, 
       RetractConstants.ksFFNear, RetractConstants.ksFFFar)/12.0;
@@ -334,6 +351,7 @@ public class ArmstrongArmKinematics extends SubsystemBase {
       brakeSolenoid.set(RetractConstants.DISENGAGED);
     }
   }
+  
 
   
 

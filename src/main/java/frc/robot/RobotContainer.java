@@ -8,6 +8,8 @@ import java.util.function.Supplier;
 
 import com.revrobotics.CANSparkMax.SoftLimitDirection;
 
+import edu.wpi.first.math.estimator.DifferentialDrivePoseEstimator;
+import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -23,7 +25,9 @@ import frc.robot.commands.setArm;
 import frc.robot.subsystems.ArmBrake;
 import frc.robot.subsystems.ArmstrongArmKinematics;
 import frc.robot.subsystems.ExampleSubsystem;
+import frc.robot.subsystems.Vision;
 import frc.robot.subsystems.ArmstrongArmKinematics.RetractSolenoidPosition;
+import frc.robot.Constants.ChassisConstants;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -39,6 +43,14 @@ public class RobotContainer {
 
   private final CommandJoystick driver = new CommandJoystick(1);
   private final CommandJoystick operator = new CommandJoystick(0);
+  
+  // public DifferentialDriveKinematics kinematics = new DifferentialDriveKinematics(ChassisConstants.kWheelSpacing);
+  // public DifferentialDrivePoseEstimator pe =  new DifferentialDrivePoseEstimator(
+  //   kinematics, navx.getRotation2d(),
+  //   0, 0,
+  //   new Pose2d(0,0, new Rotation2d())
+  // );
+  public Vision vision = new Vision();
 
   // Replace with CommandPS4Controller or CommandJoystick if needed
   //private final CommandXboxController m_driverController =
@@ -48,6 +60,7 @@ public class RobotContainer {
   public RobotContainer() {
     arm.armMotor.enableSoftLimit(SoftLimitDirection.kForward, true);
     arm.armMotor.enableSoftLimit(SoftLimitDirection.kReverse, true);
+    arm.retractMotor.enableSoftLimit(SoftLimitDirection.kForward, false);
 
     // arm.setDefaultCommand(
     //   new setArm(90, 0, 0, 0, arm)
@@ -90,7 +103,7 @@ public class RobotContainer {
     operator.button(1).whileTrue(
     new RunCommand(()->{
       var joy = operator.getRawAxis(3);
-      var inches = Lerp.lerp(joy, -1, 1, 12, 36);
+      var inches = Lerp.lerp(joy, -1, 1, 12, 72);
       var ik=arm.inverseKinematics(34, inches, 0);
       SmartDashboard.putNumber("ik/extDistance", ik[0]);
       SmartDashboard.putNumber("ik/extAngle", ik[1]);
@@ -112,7 +125,7 @@ public class RobotContainer {
       new setArm(
       ()->arm.inverseKinematics(
           34, 
-          Lerp.lerp(operator.getRawAxis(3), -1,  1, 12, 36), 
+          Lerp.lerp(operator.getRawAxis(3), -1,  1, 12, 72), 
           0
         ), 
         ()->0, 
