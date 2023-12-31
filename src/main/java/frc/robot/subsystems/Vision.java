@@ -35,12 +35,13 @@ public class Vision extends SubsystemBase {
   
   NetworkTableEntry tx = table.getEntry("tx"); // gets horizontal offset from crosshair (degrees)
   NetworkTableEntry ty = table.getEntry("ty"); // gets vertical offset from crosshair (degrees)
+  NetworkTableEntry targetPoseArray = table.getEntry("targetpose_robotspace");
   NetworkTableEntry ta = table.getEntry("ta"); // gets target area; how much its taking from the camera screen
   NetworkTableEntry tv = table.getEntry("tv"); //valid target = 1, if target not valid, its equal to 0
   NetworkTableEntry bptable = table.getEntry("botpose"); //gets translation (x, y, z) and rotation (x, y, z) for bot pose
   
   public enum LimelightPipeline{
-    kNoVision, kMidCone, kHighCone, kAprilTag
+    kNoVision, kMidCone, kHighCone, kAprilTag, kAprilTagKinematics
   }
 
   public double camAngle = 45.0; 
@@ -49,8 +50,10 @@ public class Vision extends SubsystemBase {
 
 
   public double bpDefault [] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  public double targetDefault [] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   public Rotation2d rot = new Rotation2d(0,0);
   public Pose2d botPose = new Pose2d(0, 0, new Rotation2d(0));
+  public double[] targetPose = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   private DifferentialDrivePoseEstimator poseEstimator;
   Field2d field;
   public Pose3d target = new Pose3d();
@@ -92,15 +95,23 @@ public class Vision extends SubsystemBase {
     //read values periodically
     boolean hasTargets = tv.getDouble(0) == 1 ? true : false;
     double x = tx.getDouble(0.0);
-    double y = ty.getDouble(0.0); 
+    double y = ty.getDouble(0.0);
+    double[] targetPose = targetPoseArray.getDoubleArray(targetDefault);
+    
 
     // SmartDashboard.putBoolean("vision/TargetValid", hasTargets);
-    // SmartDashboard.putNumber("vision/X", x);
-    // SmartDashboard.putNumber("vision/Y", y);
-    SmartDashboard.putNumber("ik/distanceY", height());
+    SmartDashboard.putNumber("vision/X", x);
+    SmartDashboard.putNumber("vision/Y", y);
+    SmartDashboard.putNumberArray("vision/targetPose", targetPose);
+    SmartDashboard.putNumber("vision/targetPoseX", targetPose[2]);
+    SmartDashboard.putNumber("vision/targetPoseY", -targetPose[1]);
 
     double[] bp = bptable.getDoubleArray(bpDefault);
     if(Array.getLength(bp)<6) return;
+
+    while (this.hasValidTarget()) {
+      targetPose = targetPoseArray.getDoubleArray(targetDefault);
+    }
         
     //post to smart dashboard periodically
     // SmartDashboard.putNumber("vision/Area", targetArea);
@@ -122,14 +133,14 @@ public class Vision extends SubsystemBase {
     //x is fixed
     //y is variable
    double height = 0.0;
-   double distance = 20.0;
+   double distance = 40.0; //inches
    double yAngle = ty.getDouble(0.0);
    height = (Math.tan(Math.toRadians(yAngle+camAngle))*distance)+camHeight;
   //check angle is in radians
     if (height < camHeight) {
       height = camHeight;
     }
-    return height;
+    return height-2;
   }
 
 
@@ -150,6 +161,10 @@ public class Vision extends SubsystemBase {
 
   public Pose2d getPose(){
     return botPose;
+  }
+
+  public double[] getTargetArray() {
+    return targetPose;
   }
 
   public double getX () {
@@ -234,7 +249,11 @@ public class Vision extends SubsystemBase {
       break;
       case kAprilTag:
       table.getEntry("pipeline").setNumber(3);
+      break;
+      case kAprilTagKinematics:
+      table.getEntry("pipeline").setNumber(9);
       }
+      
   }
 }
 

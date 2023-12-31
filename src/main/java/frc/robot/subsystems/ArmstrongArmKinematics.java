@@ -251,7 +251,7 @@ public class ArmstrongArmKinematics extends SubsystemBase {
    * @param wristAngle
    * @return [ext,angle degrees]
    */
-  public double[] inverseKinematics( double endEffectorX, double endEffectorY, double wristAngle) {
+  public double[] inverseKinematics(double endEffectorX, double endEffectorY, double wristAngle) {
     double wristLength=11;
     double heightAboveFloorInches= 22-5; 
     wristAngle = Math.toRadians(wristAngle);
